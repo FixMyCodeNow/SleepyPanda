@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:testt/Services/auth_service.dart';
-import 'package:testt/screens/user_info_screen.dart';
 import 'screens/Splash_Screen.dart';
 import 'screens/Welcome_Screen.dart';
 import 'screens/Login_Screen.dart';
 import 'screens/Register_Screen.dart';
 import 'screens/Forgot_Password_Screen.dart';
 import 'screens/Home_Screen.dart';
+import 'screens/user_info_screen.dart';
 
 void main() {
-  runApp(const SleepyPandaApp());
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const SleepyPandaApp(startRoute: '',));
 }
 
 class SleepyPandaApp extends StatelessWidget {
-  const SleepyPandaApp({super.key});
+  const SleepyPandaApp({super.key, required String startRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -24,34 +24,19 @@ class SleepyPandaApp extends StatelessWidget {
         scaffoldBackgroundColor: const Color(0xFF1E2230),
         fontFamily: 'Roboto',
       ),
+
+      // 🚨 SELALU START DARI SPLASH
       initialRoute: '/splash',
+
       routes: {
         '/splash': (context) => const SplashScreen(),
         '/welcome': (context) => const WelcomeScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/register': (context) => const RegisterScreen(),
+        '/login': (context) => LoginScreen(),
+        '/register': (context) => RegisterScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/userinfo': (context) => const UserInfoScreen(),
         '/home': (context) => const HomeScreen(),
       },
     );
   }
-
-  void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final auth = AuthService();
-  final loggedIn = await auth.isLoggedIn();
-
-  runApp(MaterialApp(
-    debugShowCheckedModeBanner: false,
-    initialRoute: loggedIn ? '/home' : '/',
-    routes: {
-      '/': (context) => SplashScreen(),
-      '/login': (context) => LoginScreen(),
-      '/register': (context) => RegisterScreen(),
-      '/home': (context) => HomeScreen(),
-    },
-  ));
-}
-
 }

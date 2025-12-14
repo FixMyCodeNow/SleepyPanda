@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/auth_service.dart';
+
+import '../Services/auth_service.dart';
+import '../Services/user_service.dart';
+import '../model/user_model.dart';
+import 'profile_detail_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -10,138 +14,115 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final _authService = AuthService();
+  final AuthService _auth = AuthService();
+  final UserService _userService = UserService();
 
-  final TextEditingController _nameController =
-      TextEditingController(text: "Ariana");
-  final TextEditingController _emailController =
-      TextEditingController(text: "ariana@mail.com");
-  final TextEditingController _dobController =
-      TextEditingController(text: "30 May 1994");
-  final TextEditingController _heightController =
-      TextEditingController(text: "166 Cm");
-  final TextEditingController _weightController =
-      TextEditingController(text: "58 Kg");
+  UserModel? user;
+  bool loading = true;
 
-  String gender = "Female";
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final userId = await _auth.getCurrentUserId();
+    if (userId == null) {
+      setState(() => loading = false);
+      return;
+    }
+
+    final result = await _userService.getUserById(userId);
+
+    setState(() {
+      user = result;
+      loading = false;
+    });
+  }
+
+  Future<void> _openDetail() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProfileDetailScreen(user: user!),
+      ),
+    );
+
+    // 🔥 reload data setelah edit
+    _loadUser();
+  }
 
   Future<void> _logout() async {
-    await _authService.logout();
-    if (mounted) {
-      Navigator.pushReplacementNamed(context, '/login');
-    }
+    await _auth.logout();
+    if (!mounted) return;
+
+    Navigator.pushNamedAndRemoveUntil(
+      context,
+      '/welcome',
+      (route) => false,
+    );
   }
 
   @override
   Widget build(BuildContext context) {
+    if (loading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (user == null) {
+      return const Scaffold(
+        body: Center(
+          child: Text("User tidak ditemukan"),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF1C2143),
       appBar: AppBar(
         backgroundColor: const Color(0xFF1C2143),
         elevation: 0,
         centerTitle: true,
-        title: Text(
-          "Profile",
-          style: GoogleFonts.roboto(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
+        title: const Text("Profile"),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 10),
+      body: Padding(
+        padding: const EdgeInsets.all(24),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 10),
-
-            // Avatar default (tanpa gambar/icon)
-            Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                shape: BoxShape.circle,
-              ),
-            ),
-
             const SizedBox(height: 20),
 
-            // Name field
-            _buildProfileField(
-              label: "Nama",
-              controller: _nameController,
-              icon: Icons.person_outline,
+            // Avatar
+            const CircleAvatar(
+              radius: 45,
+              backgroundColor: Colors.white24,
+              child: Icon(Icons.person, color: Colors.white, size: 40),
             ),
 
-            // Email
-            _buildProfileField(
-              label: "Email",
-              controller: _emailController,
-              icon: Icons.email_outlined,
-            ),
+            const SizedBox(height: 16),
 
-            // Gender
-            _buildGenderField(),
-
-            // Date of Birth
-            _buildProfileField(
-              label: "Date of birth",
-              controller: _dobController,
-              icon: Icons.calendar_today,
-            ),
-
-            // Height
-            _buildProfileField(
-              label: "Height",
-              controller: _heightController,
-              icon: Icons.height,
-            ),
-
-            // Weight
-            _buildProfileField(
-              label: "Weight",
-              controller: _weightController,
-              icon: Icons.monitor_weight_outlined,
-            ),
-
-            const SizedBox(height: 10),
-
-            // Save button
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF00C2CB),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text("Profil berhasil disimpan!"),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
-                },
-                child: Text(
-                  "Save",
-                  style: GoogleFonts.roboto(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
-                ),
+            Text(
+              user!.name.isEmpty ? "Nama belum diisi" : user!.name,
+              style: GoogleFonts.roboto(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
               ),
             ),
 
-            const SizedBox(height: 30),
+            const SizedBox(height: 4),
 
-            // Other options section
+            Text(
+              user!.email,
+              style: GoogleFonts.roboto(color: Colors.white70),
+            ),
+
+            const SizedBox(height: 24),
+
+            // Card Info
             Container(
-              width: double.infinity,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFF23284D),
@@ -150,53 +131,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Column(
                 children: [
                   Text(
-                    "Untuk hasil analisa yang lebih baik, daftarkan informasi profil mu.",
+                    "Untuk hasil analisa yang lebih akurat, "
+                    "lengkapi informasi profil kamu.",
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.roboto(
-                      color: Colors.white70,
-                      fontSize: 14,
-                    ),
+                    style: GoogleFonts.roboto(color: Colors.white70),
                   ),
                   const SizedBox(height: 12),
                   TextButton(
-                    onPressed: () {},
-                    child: Text(
+                    onPressed: _openDetail,
+                    child: const Text(
                       "Lihat profil saya",
-                      style: GoogleFonts.roboto(
-                        color: const Color(0xFF00C2CB),
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: TextStyle(color: Color(0xFF00C2CB)),
                     ),
                   ),
-                  const Divider(color: Colors.white24, height: 20),
-                  _buildOptionItem("Detail Profil"),
-                  _buildOptionItem("Terms & Conditions"),
-                  _buildOptionItem("Feedback"),
                 ],
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
-            // Logout Button
+            // Menu
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF23284D),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Column(
+                children: [
+                  _menuTile("Detail profil", _openDetail),
+                  _divider(),
+                  _menuTile("Terms & Conditions", () {}),
+                  _divider(),
+                  _menuTile("Feedback", () {}),
+                ],
+              ),
+            ),
+
+            const Spacer(),
+
+            // Logout
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 48,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
                 ),
                 onPressed: _logout,
-                child: Text(
+                child: const Text(
                   "Logout",
-                  style: GoogleFonts.roboto(
-                    color: const Color(0xFF1C2143),
-                    fontWeight: FontWeight.w600,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Color(0xFF1C2143)),
                 ),
               ),
             ),
@@ -206,105 +190,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // --- Helper Widgets ---
-  Widget _buildProfileField({
-    required String label,
-    required TextEditingController controller,
-    required IconData icon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        Text(
-          label,
-          style: GoogleFonts.roboto(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          style: const TextStyle(color: Colors.white),
-          decoration: InputDecoration(
-            prefixIcon: Icon(icon, color: Colors.white70),
-            suffixIcon: const Icon(Icons.edit_outlined, color: Colors.white70),
-            filled: true,
-            fillColor: const Color(0xFF23284D),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF00C2CB)),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGenderField() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 12),
-        Text(
-          "Gender",
-          style: GoogleFonts.roboto(
-            color: Colors.white70,
-            fontSize: 14,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: const Color(0xFF23284D),
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: DropdownButtonFormField<String>(
-            dropdownColor: const Color(0xFF23284D),
-            value: gender,
-            iconEnabledColor: Colors.white,
-            decoration: const InputDecoration(
-              border: InputBorder.none,
-              prefixIcon: Icon(Icons.female, color: Colors.white70),
-              contentPadding: EdgeInsets.symmetric(horizontal: 16),
-            ),
-            items: ["Female", "Male"]
-                .map((g) => DropdownMenuItem(
-                      value: g,
-                      child: Text(
-                        g,
-                        style: const TextStyle(color: Colors.white),
-                      ),
-                    ))
-                .toList(),
-            onChanged: (value) {
-              setState(() {
-                gender = value!;
-              });
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOptionItem(String text) {
+  Widget _menuTile(String title, VoidCallback onTap) {
     return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(
-        text,
-        style: GoogleFonts.roboto(
-          color: Colors.white,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 18),
-      onTap: () {},
+      title: Text(title, style: const TextStyle(color: Colors.white)),
+      trailing: const Icon(Icons.chevron_right, color: Colors.white),
+      onTap: onTap,
     );
   }
+
+  Widget _divider() => const Divider(color: Colors.white24, height: 1);
 }

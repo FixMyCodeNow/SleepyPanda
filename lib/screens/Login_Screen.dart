@@ -1,72 +1,146 @@
 import 'package:flutter/material.dart';
+import 'Register_Screen.dart';
 import '../Services/auth_service.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'Home_Screen.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
-
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  _LoginScreenState createState() => _LoginScreenState();
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _authService = AuthService();
-  bool _isLoading = false;
+  final AuthService _authService = AuthService();
+  final TextEditingController _email = TextEditingController();
+  final TextEditingController _password = TextEditingController();
+  bool isLoading = false;
+
+  void _login() async {
+    setState(() => isLoading = true);
+
+    bool success = await _authService.login(
+      _email.text.trim(),
+      _password.text.trim(),
+    );
+
+    setState(() => isLoading = false);
+
+    if (success) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreen()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Email atau password salah")),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
+      backgroundColor: const Color(0xFF1E2230),
+
+      body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 30.0),
+          padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 80),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('images/SleepyPanda.png', height: 100),
-              const SizedBox(height: 20),
-              const Text(
-                "Masuk menggunakan akun yang sudah kamu daftarkan",
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white70, fontSize: 15),
-              ),
-              const SizedBox(height: 40),
-              _buildInput(_emailController, "Email", false),
-              const SizedBox(height: 15),
-              _buildInput(_passwordController, "Password", true),
-              const SizedBox(height: 25),
-              _isLoading
-                  ? const CircularProgressIndicator(color: Colors.tealAccent)
-                  : ElevatedButton(
-                      onPressed: _login,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF00BFA6),
-                        minimumSize: const Size(double.infinity, 50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      child: const Text(
-                        "Masuk",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+              // IMAGE PANDA
+              Center(
+                child: Column(
+                  children: [
+                    Image.asset(
+                      "images/SleepyPanda.png",
+                      height: 110,
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      "Masuk menggunakan akun yang\nsudah kamu daftarkan",
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.roboto(
+                        color: Colors.white,
+                        fontSize: 15,
                       ),
                     ),
-              const SizedBox(height: 15),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/forgot-password'),
-                child: const Text(
-                  "Lupa password?",
-                  style: TextStyle(color: Colors.white70),
+                  ],
                 ),
               ),
-              const SizedBox(height: 5),
-              TextButton(
-                onPressed: () => Navigator.pushNamed(context, '/register'),
-                child: const Text(
-                  "Belum punya akun? Daftar",
-                  style: TextStyle(color: Colors.white),
+
+              SizedBox(height: 50),
+
+              // EMAIL
+              _buildTextField(
+                controller: _email,
+                label: "Email",
+                icon: Icons.email_outlined,
+              ),
+
+              SizedBox(height: 20),
+
+              // PASSWORD
+              _buildTextField(
+                controller: _password,
+                label: "Password",
+                icon: Icons.lock_outline,
+                obscure: true,
+                onTrailingTap: () {},
+              ),
+
+              SizedBox(height: 35),
+
+              // BUTTON LOGIN
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00C2CB),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  onPressed: isLoading ? null : _login,
+                  child: isLoading
+                      ? CircularProgressIndicator(color: Colors.white)
+                      : Text(
+                          "Masuk",
+                          style: GoogleFonts.roboto(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 16,
+                          ),
+                        ),
                 ),
               ),
+
+              SizedBox(height: 25),
+
+              // LINK TO REGISTER
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => RegisterScreen()),
+                  );
+                },
+                child: Text.rich(
+                  TextSpan(
+                    text: "Belum memiliki akun? ",
+                    style: GoogleFonts.roboto(color: Colors.white70),
+                    children: [
+                      TextSpan(
+                        text: "Daftar sekarang",
+                        style: TextStyle(
+                          color: Color(0xFF00C2CB),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              )
             ],
           ),
         ),
@@ -74,37 +148,53 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildInput(TextEditingController controller, String hint, bool obscure) {
-    return TextField(
-      controller: controller,
-      obscureText: obscure,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: Colors.white10,
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.white54),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: BorderSide.none,
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required IconData icon,
+    bool obscure = false,
+    String? trailing,
+    VoidCallback? onTrailingTap,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: GoogleFonts.roboto(color: Colors.white70, fontSize: 14)),
+        SizedBox(height: 8),
+        Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A3043),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TextField(
+            controller: controller,
+            obscureText: obscure,
+            style: TextStyle(color: Colors.white),
+            decoration: InputDecoration(
+              border: InputBorder.none,
+              prefixIcon: Icon(icon, color: Colors.white70),
+              suffixIcon: trailing != null
+                  ? GestureDetector(
+                      onTap: onTrailingTap,
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: Text(
+                            trailing,
+                            style: TextStyle(
+                                color: Color(0xFF00C2CB), fontSize: 12),
+                          ),
+                        ),
+                      ),
+                    )
+                  : null,
+              contentPadding: EdgeInsets.symmetric(vertical: 16),
+            ),
+          ),
         ),
-      ),
+      ],
     );
-  }
-
-  void _login() async {
-    setState(() => _isLoading = true);
-    bool success = await _authService.login(
-      _emailController.text,
-      _passwordController.text,
-    );
-    setState(() => _isLoading = false);
-    if (success && mounted) {
-      Navigator.pushReplacementNamed(context, '/home');
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Email atau password salah")),
-      );
-    }
   }
 }

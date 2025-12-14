@@ -26,7 +26,7 @@ android {
         applicationId = "com.example.testt"
 
         // Turunkan targetSdk juga
-        minSdk = 21
+        minSdkVersion = flutter.minSdkVersion
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"

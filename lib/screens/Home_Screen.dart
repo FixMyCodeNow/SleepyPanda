@@ -16,7 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
     const Center(child: Text('Home Page', style: TextStyle(color: Colors.white))),
     const Center(child: Text('Program Page', style: TextStyle(color: Colors.white))),
     const Center(child: Text('Statistic Page', style: TextStyle(color: Colors.white))),
-    const ProfileScreen(), // 👉 Halaman profil ditaruh di sini
+    ProfileScreen(), // 👉 Halaman profil ditaruh di sini
   ];
 
   void _onItemTapped(int index) {
