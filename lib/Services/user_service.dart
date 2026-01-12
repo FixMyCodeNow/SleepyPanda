@@ -1,81 +1,38 @@
-import 'db_helper.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../model/user_model.dart';
+import 'db_helper.dart';
 
 class UserService {
-  // ========================
-  // GET USER BY ID
-  // ========================
-  Future<UserModel?> getUserById(int id) async {
-    final db = await DBHelper.instance.database;
+  final _db = DBHelper.instance;
 
+  Future<UserModel?> getUserById(int id) async {
+    final db = await _db.database;
     final res = await db.query(
       'users',
-      where: 'id = ?',
+      where: 'id=?',
       whereArgs: [id],
-      limit: 1,
     );
 
-    if (res.isEmpty) return null;
-
-    final m = res.first;
-
-    return UserModel(
-      id: m['id'] as int,
-      name: m['name'] as String? ?? '',
-      email: m['email'] as String? ?? '',
-      gender: m['gender'] as String? ?? '',
-      dob: m['dob'] as String? ?? '',
-      height: m['height'] as int? ?? 0,
-      weight: m['weight'] as int? ?? 0,
-    );
+    if (res.isNotEmpty) {
+      return UserModel.fromMap(res.first);
+    }
+    return null;
   }
 
-  // ========================
-  // UPDATE USER
-  // ========================
-  Future<int> updateUser(UserModel user) async {
-    final db = await DBHelper.instance.database;
+  Future<void> updateUser(UserModel user) async {
+    if (user.id == null) return;
 
-    return await db.update(
+    final db = await _db.database;
+
+    await db.update(
       'users',
-      {
-        'name': user.name,
-        'email': user.email,
-        'gender': user.gender,
-        'dob': user.dob,
-        'height': user.height,
-        'weight': user.weight,
-      },
-      where: 'id = ?',
+      user.toMap(),
+      where: 'id=?',
       whereArgs: [user.id],
     );
-  }
 
-  // ========================
-  // GET USER BY EMAIL
-  // ========================
-  Future<UserModel?> getByEmail(String email) async {
-    final db = await DBHelper.instance.database;
-
-    final res = await db.query(
-      'users',
-      where: 'email = ?',
-      whereArgs: [email],
-      limit: 1,
-    );
-
-    if (res.isEmpty) return null;
-
-    final m = res.first;
-
-    return UserModel(
-      id: m['id'] as int,
-      name: m['name'] as String? ?? '',
-      email: m['email'] as String? ?? '',
-      gender: m['gender'] as String? ?? '',
-      dob: m['dob'] as String? ?? '',
-      height: m['height'] as int? ?? 0,
-      weight: m['weight'] as int? ?? 0,
-    );
+    
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_name', user.name);
   }
 }

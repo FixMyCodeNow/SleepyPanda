@@ -13,7 +13,7 @@ class WelcomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset('images/SleepyPanda.png', height: 120),
+              Image.asset('assets/images/SleepyPanda.png', height: 120),
               const SizedBox(height: 10),
               const Text(
                 "Sleepy Panda",

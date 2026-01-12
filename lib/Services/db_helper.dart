@@ -2,61 +2,40 @@ import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 
 class DBHelper {
-  static const _dbName = 'app_db.db';
-  static const _dbVersion = 2; // ⬅️ NAIKKAN VERSION
-  static Database? _database;
+  DBHelper._privateConstructor();
+  static final DBHelper instance = DBHelper._privateConstructor();
 
-  static final DBHelper instance = DBHelper._internal();
-  DBHelper._internal();
+  static Database? _database;
 
   Future<Database> get database async {
     if (_database != null) return _database!;
-    _database = await _initDB();
+    _database = await _initDatabase();
     return _database!;
   }
 
-  Future<Database> _initDB() async {
+  Future<Database> _initDatabase() async {
     final dbPath = await getDatabasesPath();
-    final path = join(dbPath, _dbName);
+    final path = join(dbPath, 'app.db');
 
     return await openDatabase(
       path,
-      version: _dbVersion,
+      version: 1,
       onCreate: _onCreate,
-      onUpgrade: _onUpgrade,
     );
   }
 
   Future<void> _onCreate(Database db, int version) async {
-    await _createUserTable(db);
-  }
-
-  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 2) {
-      // Cara paling aman untuk dev:
-      await db.execute('DROP TABLE IF EXISTS users');
-      await _createUserTable(db);
-    }
-  }
-
-  Future<void> _createUserTable(Database db) async {
     await db.execute('''
-      CREATE TABLE users(
+      CREATE TABLE users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT NOT NULL,
-        email TEXT NOT NULL UNIQUE,
-        password TEXT NOT NULL,
+        email TEXT UNIQUE,
+        password TEXT,
+        name TEXT,
         gender TEXT,
         dob TEXT,
-        height INTEGER,   -- ✅ INTEGER
-        weight INTEGER   -- ✅ INTEGER
+        height TEXT,
+        weight TEXT
       )
     ''');
-  }
-
-  Future<void> close() async {
-    final db = await database;
-    await db.close();
-    _database = null;
   }
 }

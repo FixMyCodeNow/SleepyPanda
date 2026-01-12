@@ -3,7 +3,6 @@ import 'screens/Splash_Screen.dart';
 import 'screens/Welcome_Screen.dart';
 import 'screens/Login_Screen.dart';
 import 'screens/Register_Screen.dart';
-import 'screens/Forgot_Password_Screen.dart';
 import 'screens/Home_Screen.dart';
 import 'screens/user_info_screen.dart';
 
@@ -33,7 +32,6 @@ class SleepyPandaApp extends StatelessWidget {
         '/welcome': (context) => const WelcomeScreen(),
         '/login': (context) => LoginScreen(),
         '/register': (context) => RegisterScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/userinfo': (context) => const UserInfoScreen(),
         '/home': (context) => const HomeScreen(),
       },

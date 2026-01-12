@@ -1,62 +1,45 @@
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:sqflite/sqflite.dart';
-import 'package:path/path.dart';
+import 'db_helper.dart';
 
 class AuthService {
-  static Database? _database;
+  final DBHelper _dbHelper = DBHelper.instance;
 
-  // INIT DATABASE
-  Future<Database> get database async {
-    if (_database != null) return _database!;
-    _database = await _initDB();
-    return _database!;
-  }
-
-  Future<Database> _initDB() async {
-    final dbPath = await getDatabasesPath();
-    final path = join(dbPath, 'users.db');
-
-    return await openDatabase(
-      path,
-      version: 1,
-      onCreate: (db, version) async {
-        await db.execute('''
-          CREATE TABLE users(
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            email TEXT UNIQUE,
-            password TEXT
-          )
-        ''');
-      },
-    );
-  }
-
-  // REGISTER USER
+  // ================= REGISTER =================
   Future<bool> register(String email, String password) async {
-    final db = await database;
+    final db = await _dbHelper.database;
 
-    try {
-      // INSERT user & dapatkan ID
-      int id = await db.insert('users', {
-        'email': email,
-        'password': password
-      });
+    final existingUser = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
 
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('current_user_id', id);
-      await prefs.setString('current_user_email', email);
-      await prefs.setBool('loggedIn', true);        // ➕ diperbaiki
-
-      return true;
-    } catch (e) {
-      // jika email sudah ada, return false
+    if (existingUser.isNotEmpty) {
       return false;
     }
+
+    final userId = await db.insert(
+      'users',
+      {
+        'email': email,
+        'password': password,
+        'name': '',
+        'gender': '',
+        'dob': '',
+        'height': 0,
+        'weight': 0,
+      },
+    );
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('user_id', userId);
+
+    return true;
   }
 
-  // LOGIN USER
+  // ================= LOGIN =================
   Future<bool> login(String email, String password) async {
-    final db = await database;
+    final db = await _dbHelper.database;
 
     final result = await db.query(
       'users',
@@ -66,55 +49,46 @@ class AuthService {
 
     if (result.isNotEmpty) {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('loggedIn', true);
-      await prefs.setString('current_user_email', email);
-      await prefs.setInt('current_user_id', result.first['id'] as int);
-
+      await prefs.setInt('user_id', result.first['id'] as int);
       return true;
     }
-
     return false;
   }
 
-  // CHECK LOGIN STATUS
-  Future<bool> isLoggedIn() async {
+  // ================= LOGOUT =================
+  Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    return prefs.getBool('loggedIn') ?? false;
+    await prefs.remove('user_id');
   }
 
-  // RESET PASSWORD
-  Future<bool> resetPassword(String email, String newPassword) async {
-    final db = await database;
+  // ================= CURRENT USER =================
+  Future<int?> getCurrentUserId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt('user_id');
+  }
 
-    final updateCount = await db.update(
+  // ================= RESET PASSWORD =================
+
+  Future<bool> resetPassword(String email, String newPassword) async {
+    final db = await _dbHelper.database;
+
+    final user = await db.query(
+      'users',
+      where: 'email = ?',
+      whereArgs: [email],
+    );
+
+    if (user.isEmpty) {
+      return false;
+    }
+
+    await db.update(
       'users',
       {'password': newPassword},
       where: 'email = ?',
       whereArgs: [email],
     );
 
-    return updateCount > 0;
+    return true;
   }
-
-  // GET CURRENT EMAIL
-  Future<String?> getCurrentUserEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString('current_user_email');
-  }
-
-  // GET CURRENT USER ID
-  Future<int?> getCurrentUserId() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getInt('current_user_id');
-  }
-
-  // LOGOUT
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();          // ➕ lebih bersih
-  }
-
-
-
-  
 }
